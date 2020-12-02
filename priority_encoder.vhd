@@ -1,3 +1,29 @@
+-------------------------------------------------------------------------------
+-- Title      : Priority Encoder
+-------------------------------------------------------------------------------
+-- File       : priority_encoder.vhd
+-- Author     : Andrew Peck  <andrew.peck@cern.ch>
+-- Last update: 2020-12-02
+-- Standard   : VHDL'2008
+-------------------------------------------------------------------------------
+-- Description:
+--   Weighted, pipelined, priority encoder.
+--
+--   Given an array of inputs, it will choose the first (least significant)
+--   output.
+--
+--   Inputs are weighted by a quality and sorted based on this.
+--   The quality field should be the first (least significant)
+--   N bits of the data field.
+--
+--   To do unweighted sorting (e.g. based on a valid bit),
+--   just set g_QLT_SIZE to 1 and make the
+--   valid bit the LSB of the data word
+--
+--   Both the data itself as well as the address of the data are output
+--   from the module
+-------------------------------------------------------------------------------
+
 --TODO: need to simulate this
 
 library ieee;
@@ -255,6 +281,7 @@ begin
         elsif (quality(dat_i(1)) > quality(dat_i (0))) then
           adr_o <= adrcat ("01", adr_i (1), g_ADR_SIZE_i);
           dat_o <= dat_i (1);
+        -- choose 0
         else
           adr_o <= adrcat ("00", adr_i (0), g_ADR_SIZE_i);
           dat_o <= dat_i (0);
