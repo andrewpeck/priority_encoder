@@ -3,7 +3,7 @@
 -------------------------------------------------------------------------------
 -- File       : priority_encoder.vhd
 -- Author     : Andrew Peck  <andrew.peck@cern.ch>
--- Last update: 2020-12-02
+-- Last update: 2020-12-03
 -- Standard   : VHDL'2008
 -------------------------------------------------------------------------------
 -- Description:
@@ -36,7 +36,7 @@ use work.priority_encoder_pkg.all;
 
 entity priority_encoder is
   generic(
-    VERBOSE : boolean := true;
+    VERBOSE : boolean := false;
 
     g_WIDTH : integer := 11;            -- number of inputs
 
@@ -181,7 +181,7 @@ begin
           " of " & integer'image(comp_out_width) &
           " compare: " & integer'image(icomp*2+1) &
           " to " & integer'image(icomp*2) severity note;
-        process (clock) is
+        process (clock, adr_i, dat_i) is
         begin
           if (rising_edge(clock) or not (
             (g_STAGE = 0 and g_REG_INPUT) or
@@ -195,7 +195,7 @@ begin
 
       -- if we have an odd number of inputs, just choose highest # real entry (no comparator)
       gen_odd : if (g_WIDTH mod 2 /= 0 and icomp = comp_out_width-1) generate
-        process (clock) is
+        process (clock, adr_i, dat_i) is
         begin
           if (rising_edge(clock) or not (
             (g_STAGE = 0 and g_REG_INPUT) or
@@ -243,7 +243,7 @@ begin
   -- for a double final case, choose 1 of 2
   g_WIDTH2_gen : if (g_WIDTH = 2) generate
     assert not VERBOSE report "   > 2:1 mux" severity note;
-    process (clock) is
+    process (clock, adr_i, dat_i) is
     begin
       if (rising_edge(clock) or (not g_REG_OUTPUT)) then
         best_1of2 (adr_o, dat_o,
@@ -270,7 +270,7 @@ begin
       " downto 0) <= 'xx'" severity note;
     end generate;
 
-    process (clock) is
+    process (clock, adr_i, dat_i) is
     begin
       if (rising_edge(clock) or (not g_REG_OUTPUT)) then
         -- choose 2
