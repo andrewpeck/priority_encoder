@@ -1,5 +1,7 @@
 #+TITLE: Weighted, pipelined, parameterized, parallelized priority encoder
 
+(VHDL-2008 only)
+
 Given an array of inputs, it will choose the highest quality input
 
 For multiple inputs with the same quality, it will choose the lowest numbered input
@@ -18,7 +20,7 @@ Outputs can be registered by setting ~REG_OUTPUT => true~
 
 Enabling re-timing is recommended to best balance the flip-flops across stages.
 
-Priority encoding happens in parallel, so the latency of the encoder scales as log(N)
+Priority encoding happens in parallel, so the latency of the encoder scales as log2(N)
 
 An illustrative example:
 
@@ -59,3 +61,26 @@ and ~REG_INPUT=1~ , ~REG_OUTPUT=1~, ~REG_STAGES=3~:
       adr_o => adr_o
       );
 #+end_src
+
+** Generics:
+|------------+---------------------------------------------|
+| Generic    | Description                                 |
+|------------+---------------------------------------------|
+| WIDTH      | # of inputs to the encoder                  |
+| DAT_BITS   | # of total bits per input                   |
+| QLT_BITS   | # of bits to use for sorting (N-1 downto 0) |
+| REG_STAGES | Add a flip-flop every nth pipeline stage    |
+| REG_INPUT  | ~true~ to register inputs with flip-flops     |
+| REG_OUTPUT | ~true~ to register outputs with flip-flops    |
+|------------+---------------------------------------------|
+** Ports:
+|-------+----------------------------------------------------------------------------------------------------------------------|
+| Port  | Description                                                                                                          |
+|-------+----------------------------------------------------------------------------------------------------------------------|
+| clock | Clock input                                                                                                          |
+| dat_i | 2d array of inputs, WIDTH * DAT_BITS                                                                                 |
+| dat_o | Data of the "best" output                                                                                            |
+| adr_o | Address of the "best" output                                                                                         |
+| dav_i | Data valid input; not used internally but latency of ~dav_i~ to ~dav_o~ will be equal to the latency through the encoder |
+| dav_o | Data valid output; pipelined copy of ~dav_i~                                                                           |
+|-------+----------------------------------------------------------------------------------------------------------------------|
