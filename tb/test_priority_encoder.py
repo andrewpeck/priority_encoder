@@ -58,10 +58,15 @@ async def priority_encoder_random_data(dut):
     cocotb.fork(Clock(dut.clock, 20, units="ns").start())  # Create a clock
 
     width = dut.g_WIDTH.value
+    qltbits = dut.g_QLT_SIZE.value
+    qltmask = 2**(qltbits)-1
+    print("quality mask:")
+    print(qltmask)
     latency = get_latency(dut)
 
+
     for ichn in range(0, width):
-        dut.dat_i[ichn] <= random.randint (0,2**32-1)
+        dut.dat_i[ichn] <= 0;
 
     for loop in range(10):
         await RisingEdge(dut.clock)  # Synchronize with the clock
@@ -71,7 +76,7 @@ async def priority_encoder_random_data(dut):
         # turn on stimulus for 1 clock
         await RisingEdge(dut.clock)  # Synchronize with the clock
         for ichn in range(0, width):
-            dut.dat_i[ichn] <= random.randint (0,2**32-1)
+            dut.dat_i[ichn] <= random.randint (0,2**width-1)
         dut.dav_i <= 1;
 
         # turn off after 1 clock
@@ -84,23 +89,33 @@ async def priority_encoder_random_data(dut):
         # find the best output
         # (priority encoder emulation)
         best = -1
-        max = -1
+        qlt = -1
+        dat = -1
         for ichn in range(0, width):
             val = int(dut.dat_i[ichn].value)
-            if (val > max):
+            print(hex(qltmask & val))
+            if ((qltmask & val) > qlt):
                 best = ichn
-                max = val
+                qlt = val & qltmask
+                dat = val
 
         await RisingEdge(dut.clock)  # Synchronize with the clock
         while (dut.dav_o.value == 0):
            print ("dav=" + hex(int(dut.dav_o.value)))
            await RisingEdge(dut.clock)  # Synchronize with the clock
 
-        assert int(dut.adr_o.value) == best;
-        assert int(dut.dat_o.value) == max;
+        print ("best adr=" + hex(int(best)))
+        print ("best data=" + hex(int(qlt)))
+        print ("found adr=" + hex(int(dut.adr_o.value)))
+        print ("found data=" + hex(int(dut.dat_o.value)))
 
-@pytest.mark.parametrize("width", [2, 3, 4, 5, 7, 13, 16, 32, 64, 128, 1536])
-def test_priority_encoder(width):
+        assert int(dut.adr_o.value) == best;
+        assert int(dut.dat_o.value) == dat;
+
+@pytest.mark.parametrize("qlt_aspect", [1,2])
+@pytest.mark.parametrize("datbits", [1,2,3,32])
+@pytest.mark.parametrize("width", [2, 3, 4, 5, 7, 13, 16, 32, 64])
+def test_priority_encoder(width, datbits, qlt_aspect):
 
     tests_dir = os.path.abspath(os.path.dirname(__file__))
     rtl_dir = os.path.abspath(os.path.join(tests_dir, '..', 'hdl'))
@@ -113,6 +128,8 @@ def test_priority_encoder(width):
 
     parameters = {}
     parameters['g_WIDTH'] = width
+    parameters['g_DAT_SIZE'] = datbits
+    parameters['g_QLT_SIZE'] = int(datbits/qlt_aspect)
 
     run(
         vhdl_sources=vhdl_sources,
