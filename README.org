@@ -16,17 +16,6 @@ Inputs can be registered by setting ~REG_INPUT => true~
 
 Outputs can be registered by setting ~REG_OUTPUT => true~
 
-Pipeline registers can be inserted throughout the priority encoder tree with by setting ~REG_STAGES~
- - Setting ~REG_STAGES=0~ will not insert any pipeline registers
- - Setting ~REG_STAGES=N~ will insert pipeline registers on every Nth stage of the sorting tree
-
-For example, on a tree with depth 8 (e.g. 256 bit wide encoder with 256 --> 128 --> 64 --> 32 --> 16 --> 8 --> 4 --> 2 --> 1)
-and ~REG_INPUT=1~ , ~REG_OUTPUT=1~, ~REG_STAGES=3~:
-  - You would have a flip-flop at stage 0
-  - You would have a flip-flop at stage 3
-  - You would have a flip-flop at stage 6
-  - You would have a flip-flop at stage 7
-
 Enabling re-timing is recommended to best balance the flip-flops across stages.
 
 Priority encoding happens in parallel, so the latency of the encoder scales as log(N)
@@ -34,6 +23,19 @@ Priority encoding happens in parallel, so the latency of the encoder scales as l
 An illustrative example:
 
 [[file:doc/example.gv.svg]]
+
+Pipeline registers can be inserted throughout the priority encoder tree with by setting ~REG_STAGES~
+ - Setting ~REG_STAGES=0~ will not insert any pipeline registers
+ - Setting ~REG_STAGES=N~ will insert pipeline registers on every Nth stage of the sorting tree
+
+For example, on a tree with depth 8 (e.g. 256 bit wide encoder with
+256 ⟶ 128 ⟶ 64 ⟶ 32 ⟶ 16 ⟶ 8 ⟶ 4 ⟶ 2 ⟶ 1)
+and ~REG_INPUT=1~ , ~REG_OUTPUT=1~, ~REG_STAGES=3~:
+
+  - You would have a flip-flop at stage 0
+  - You would have a flip-flop at stage 3
+  - You would have a flip-flop at stage 6
+  - You would have a flip-flop at stage 7
 
 ** VHDL Instantiation Template
 #+begin_src vhdl
