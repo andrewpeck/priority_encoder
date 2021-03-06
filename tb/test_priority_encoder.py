@@ -39,16 +39,15 @@ def tree_depth(width, tail=0):
         return (tree_depth(math.ceil(width/2),tail+1))
 
 def get_latency(dut):
-    width = dut.g_WIDTH.value
-    reg_input = dut.g_REG_INPUT.value
-    reg_output = dut.g_REG_OUTPUT.value
-    reg_stages = dut.g_REG_STAGES.value
+    width = dut.WIDTH.value
+    reg_input = dut.REG_INPUT.value
+    reg_output = dut.REG_OUTPUT.value
+    reg_stages = dut.REG_STAGES.value
 
     depth = tree_depth(width)
     num_ffs = num_pipeline_ffs(depth, reg_stages)
 
-
-    latency  =  reg_input + reg_output + num_ffs
+    latency = reg_input + reg_output + num_ffs
     return latency
 
 @cocotb.test()
@@ -57,8 +56,8 @@ async def priority_encoder_random_data(dut):
 
     cocotb.fork(Clock(dut.clock, 20, units="ns").start())  # Create a clock
 
-    width = dut.g_WIDTH.value
-    qltbits = dut.g_QLT_SIZE.value
+    width = dut.WIDTH.value
+    qltbits = dut.QLT_BITS.value
     qltmask = 2**(qltbits)-1
     print("quality mask:")
     print(qltmask)
@@ -127,9 +126,9 @@ def test_priority_encoder(width, datbits, qlt_aspect):
     ]
 
     parameters = {}
-    parameters['g_WIDTH'] = width
-    parameters['g_DAT_SIZE'] = datbits
-    parameters['g_QLT_SIZE'] = int(datbits/qlt_aspect)
+    parameters['WIDTH'] = width
+    parameters['DAT_BITS'] = datbits
+    parameters['QLT_BITS'] = int(datbits/qlt_aspect)
 
     run(
         vhdl_sources=vhdl_sources,

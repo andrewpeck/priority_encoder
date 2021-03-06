@@ -17,7 +17,7 @@
 --   N bits of the data field.
 --
 --   To do unweighted sorting (e.g. based on a valid bit),
---   just set g_QLT_SIZE to 1 and make the
+--   just set QLT_BITS to 1 and make the
 --   valid bit the LSB of the data word
 --
 --   Both the data itself as well as the address of the data are output
@@ -44,31 +44,31 @@ entity priority_encoder is
   generic(
     VERBOSE : boolean := false;
 
-    g_WIDTH : integer := 5;            -- number of inputs
+    WIDTH : integer := 5;               -- number of inputs
 
-    g_REG_INPUT  : boolean := false;    -- add ffs to input stage
-    g_REG_OUTPUT : boolean := true;     -- add ffs to output stage
-    g_REG_STAGES : integer := 2;        -- add ffs to every nth pipeline stage
+    REG_INPUT  : boolean := false;      -- add ffs to input stage
+    REG_OUTPUT : boolean := true;       -- add ffs to output stage
+    REG_STAGES : integer := 2;          -- add ffs to every nth pipeline stage
 
-    g_DAT_SIZE   : integer := 32;                                  -- number of data (non sorting) bits
-    g_QLT_SIZE   : integer := 1;                                   -- number of sorting bits
-    g_ADR_SIZE_i : integer := 0;                                   -- set to zero for top level instance
-    g_ADR_SIZE_o : integer := integer(ceil(log2(real(g_WIDTH))));
-    g_STAGE      : integer := 0                                    -- set to zero for top level instance
+    DAT_BITS   : integer := 32;         -- number of data (non sorting) bits
+    QLT_BITS   : integer := 1;          -- number of sorting bits
+    ADR_BITS_i : integer := 0;          -- set to zero for top level instance
+    ADR_BITS_o : integer := integer(ceil(log2(real(WIDTH))));
+    STAGE      : integer := 0           -- set to zero for top level instance
 
     );
   port(
     clock : in std_logic;
 
     -- inputs
-    dat_i : in bus_array (0 to g_WIDTH-1)(g_DAT_SIZE -1 downto 0) := (others => (others => '0')); -- "extra" non-sorting data bits for each input
-    adr_i : in bus_array (0 to g_WIDTH-1)(g_ADR_SIZE_i-1 downto 0) := (others => (others => '0'));  -- address bits, set to zero for top level
-    dav_i : in std_logic := '0';
+    dat_i : in bus_array (0 to WIDTH-1)(DAT_BITS -1 downto 0)  := (others => (others => '0'));  -- "extra" non-sorting data bits for each input
+    adr_i : in bus_array (0 to WIDTH-1)(ADR_BITS_i-1 downto 0) := (others => (others => '0'));  -- address bits, set to zero for top level
+    dav_i : in std_logic                                         := '0';
 
     -- outputs
-    dat_o : out std_logic_vector (g_DAT_SIZE -1 downto 0) := (others => '0');
-    adr_o : out std_logic_vector (g_ADR_SIZE_o-1 downto 0):= (others => '0');
-    dav_o : out std_logic := '0'
+    dat_o : out std_logic_vector (DAT_BITS -1 downto 0)  := (others => '0');
+    adr_o : out std_logic_vector (ADR_BITS_o-1 downto 0) := (others => '0');
+    dav_o : out std_logic                                  := '0'
     );
 end priority_encoder;
 
@@ -98,9 +98,9 @@ architecture behavioral of priority_encoder is
 
   -- FIXME: DOCUMENT ME
   function quality (slv : std_logic_vector) return std_logic_vector is
-    variable result : std_logic_vector(g_QLT_SIZE-1 downto 0);
+    variable result : std_logic_vector(QLT_BITS-1 downto 0);
   begin
-    return slv(g_QLT_SIZE-1 downto 0);
+    return slv(QLT_BITS-1 downto 0);
   end;
 
   -- FIXME: DOCUMENT ME
@@ -110,10 +110,10 @@ architecture behavioral of priority_encoder is
     ) is
   begin
     if (quality(dat1) > quality(dat0)) then
-      best_adr <= adrcat ('1', adr1, g_ADR_SIZE_i);
+      best_adr <= adrcat ('1', adr1, ADR_BITS_i);
       best_dat <= dat1;
     else
-      best_adr <= adrcat ('0', adr0, g_ADR_SIZE_i);
+      best_adr <= adrcat ('0', adr0, ADR_BITS_i);
       best_dat <= dat0;
     end if;
   end best_1of2;
@@ -156,31 +156,31 @@ architecture behavioral of priority_encoder is
   function stage_is_registered (stage : integer; reg_stages : integer; reg_input : boolean)
     return boolean is
   begin
-      return ((stage = 0 and reg_input) or (stage /= 0 and (stage mod reg_stages = 0)));
+    return ((stage = 0 and reg_input) or (stage /= 0 and (stage mod reg_stages = 0)));
   end function;
 
   signal dav : std_logic := '0';
 
 begin
 
-  assert not VERBOSE report "Generating priority encoder stage " & integer'image(g_STAGE) severity note;
-  assert not VERBOSE report "  WIDTH= " & integer'image(g_WIDTH) severity note;
-  assert not VERBOSE report "  ADRBI= " & integer'image(g_ADR_SIZE_i) severity note;
+  assert not VERBOSE report "Generating priority encoder stage " & integer'image(STAGE) severity note;
+  assert not VERBOSE report "  WIDTH= " & integer'image(WIDTH) severity note;
+  assert not VERBOSE report "  ADRBI= " & integer'image(ADR_BITS_i) severity note;
   assert not VERBOSE report "  ADRBO= " & integer'image(adr_o'length) severity note;
 
   -- do a 2:1 reduction of all of the inputs to form a 1/2 width comparison array
   -- feed this recursively into another encoder which will have 1 additional addrb
-  comp_gen : if (g_WIDTH > 3) generate
-    constant comp_out_width : integer := next_width(g_WIDTH);
-    signal dat              : bus_array (0 to comp_out_width-1)(g_DAT_SIZE-1 downto 0) := (others => (others => '0'));
-    signal adr              : bus_array (0 to comp_out_width-1)(g_ADR_SIZE_i downto 0) := (others => (others => '0'));  -- add 1 bit
+  comp_gen : if (WIDTH > 3) generate
+    constant comp_out_width : integer                                                  := next_width(WIDTH);
+    signal dat              : bus_array (0 to comp_out_width-1)(DAT_BITS-1 downto 0) := (others => (others => '0'));
+    signal adr              : bus_array (0 to comp_out_width-1)(ADR_BITS_i downto 0) := (others => (others => '0'));  -- add 1 bit
   begin
 
-    assert not VERBOSE report " > Generating comparators for #inputs=" & integer'image(g_WIDTH) severity note;
+    assert not VERBOSE report " > Generating comparators for #inputs=" & integer'image(WIDTH) severity note;
 
-    process (clock,dav_i) is
+    process (clock, dav_i) is
     begin
-      if (rising_edge(clock) or not (stage_is_registered(g_STAGE, g_REG_STAGES, g_REG_INPUT))) then
+      if (rising_edge(clock) or not (stage_is_registered(STAGE, REG_STAGES, REG_INPUT))) then
         dav <= dav_i;
       end if;
     end process;
@@ -189,7 +189,7 @@ begin
     begin
 
       -- even cases are simple
-      gen_even : if (icomp < comp_out_width -1 or (g_WIDTH mod 2 = 0)) generate
+      gen_even : if (icomp < comp_out_width -1 or (WIDTH mod 2 = 0)) generate
 
         assert not VERBOSE report "   > icomp: #" & integer'image(icomp+1) &
           " of " & integer'image(comp_out_width) &
@@ -198,7 +198,7 @@ begin
 
         process (clock, adr_i, dat_i) is
         begin
-          if (rising_edge(clock) or not (stage_is_registered(g_STAGE, g_REG_STAGES, g_REG_INPUT))) then
+          if (rising_edge(clock) or not (stage_is_registered(STAGE, REG_STAGES, REG_INPUT))) then
             best_1of2 (adr(icomp), dat(icomp),
                        adr_i(icomp*2), adr_i(icomp*2+1),
                        dat_i(icomp*2), dat_i(icomp*2+1));
@@ -208,15 +208,15 @@ begin
       end generate;
 
       -- if we have an odd number of inputs, just choose highest # real entry (no comparator)
-      gen_odd : if (g_WIDTH mod 2 /= 0 and icomp = comp_out_width-1) generate
+      gen_odd : if (WIDTH mod 2 /= 0 and icomp = comp_out_width-1) generate
 
         assert not VERBOSE report "  > odd nocompare on : " & integer'image(icomp*2) severity note;
 
         process (clock, adr_i, dat_i) is
         begin
-          if (rising_edge(clock) or not (stage_is_registered(g_STAGE, g_REG_STAGES, g_REG_INPUT))) then
+          if (rising_edge(clock) or not (stage_is_registered(STAGE, REG_STAGES, REG_INPUT))) then
             --dat(icomp) <= dat_i(icomp*2);
-            --adr(icomp) <= adrcat ('0', adr_i (icomp*2), g_ADR_SIZE_i);
+            --adr(icomp) <= adrcat ('0', adr_i (icomp*2), ADR_BITS_i);
             best_1of2 (adr(icomp), dat(icomp),
                        adr_i(icomp*2), adr_i(icomp*2),
                        dat_i(icomp*2), dat_i(icomp*2));
@@ -230,13 +230,13 @@ begin
 
     priority_encoder_inst : entity work.priority_encoder
       generic map (
-        g_STAGE      => g_STAGE + 1,
-        g_REG_STAGES => g_REG_STAGES,
-        g_WIDTH      => comp_out_width,
-        g_DAT_SIZE   => g_DAT_SIZE,
-        g_QLT_SIZE   => g_QLT_SIZE,
-        g_ADR_SIZE_i => g_ADR_SIZE_i+1,
-        g_ADR_SIZE_o => g_ADR_SIZE_o
+        STAGE      => STAGE + 1,
+        REG_STAGES => REG_STAGES,
+        WIDTH      => comp_out_width,
+        DAT_BITS   => DAT_BITS,
+        QLT_BITS   => QLT_BITS,
+        ADR_BITS_i => ADR_BITS_i+1,
+        ADR_BITS_o => ADR_BITS_o
         )
       port map (
         clock => clock,
@@ -255,11 +255,11 @@ begin
   --------------------------------------------------------------------------------
 
   -- for a single final case, just output it
-  g_WIDTH1_gen : if (g_WIDTH = 1) generate
+  WIDTH1_gen : if (WIDTH = 1) generate
   begin
-    process (clock,dav_i,adr_i,dat_i) is
+    process (clock, dav_i, adr_i, dat_i) is
     begin
-      if (rising_edge(clock) or (not g_REG_OUTPUT)) then
+      if (rising_edge(clock) or (not REG_OUTPUT)) then
         dav_o <= dav_i;
         adr_o <= adr_i(0);
         dat_o <= dat_i(0);
@@ -268,11 +268,11 @@ begin
   end generate;
 
   -- for a double final case, choose 1 of 2
-  g_WIDTH2_gen : if (g_WIDTH = 2) generate
+  WIDTH2_gen : if (WIDTH = 2) generate
     assert not VERBOSE report "   > 2:1 mux" severity note;
     process (clock, dav_i, adr_i, dat_i) is
     begin
-      if (rising_edge(clock) or (not g_REG_OUTPUT)) then
+      if (rising_edge(clock) or (not REG_OUTPUT)) then
         dav_o <= dav_i;
         best_1of2 (adr_o, dat_o,
                    adr_i(0), adr_i(1),
@@ -282,26 +282,26 @@ begin
   end generate;
 
   -- for a triple final case, choose 1 of 3
-  g_WIDTH3_gen : if (g_WIDTH = 3) generate
+  WIDTH3_gen : if (WIDTH = 3) generate
     assert not VERBOSE report "   > 3:1 mux" severity note;
 
     process (clock, dav_i, adr_i, dat_i) is
     begin
-      if (rising_edge(clock) or (not g_REG_OUTPUT)) then
+      if (rising_edge(clock) or (not REG_OUTPUT)) then
 
         dav_o <= dav_i;
 
         -- choose 2
         if (quality(dat_i(2)) > quality(dat_i (1)) and quality(dat_i(2)) > quality(dat_i (0))) then
-          adr_o <= adrcat ("10", adr_i (2), g_ADR_SIZE_i);
+          adr_o <= adrcat ("10", adr_i (2), ADR_BITS_i);
           dat_o <= dat_i (2);
         -- choose 1
         elsif (quality(dat_i(1)) > quality(dat_i (0))) then
-          adr_o <= adrcat ("01", adr_i (1), g_ADR_SIZE_i);
+          adr_o <= adrcat ("01", adr_i (1), ADR_BITS_i);
           dat_o <= dat_i (1);
         -- choose 0
         else
-          adr_o <= adrcat ("00", adr_i (0), g_ADR_SIZE_i);
+          adr_o <= adrcat ("00", adr_i (0), ADR_BITS_i);
           dat_o <= dat_i (0);
         end if;
       end if;
