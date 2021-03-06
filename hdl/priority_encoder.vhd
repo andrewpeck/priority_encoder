@@ -3,7 +3,7 @@
 -------------------------------------------------------------------------------
 -- File       : priority_encoder.vhd
 -- Author     : Andrew Peck  <andrew.peck@cern.ch>
--- Last update: 2020-12-03
+-- Last update: 2021-03-05
 -- Standard   : VHDL'2008
 -------------------------------------------------------------------------------
 -- Description:
@@ -24,7 +24,13 @@
 --   from the module
 -------------------------------------------------------------------------------
 
---TODO: need to simulate this
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+package priority_encoder_pkg is
+  type bus_array is array(natural range <>) of std_logic_vector;
+end package;
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -38,13 +44,13 @@ entity priority_encoder is
   generic(
     VERBOSE : boolean := false;
 
-    g_WIDTH : integer := 11;            -- number of inputs
+    g_WIDTH : integer := 5;            -- number of inputs
 
     g_REG_INPUT  : boolean := false;    -- add ffs to input stage
     g_REG_OUTPUT : boolean := true;     -- add ffs to output stage
     g_REG_STAGES : integer := 2;        -- add ffs to every nth pipeline stage
 
-    g_DAT_SIZE   : integer := 1;                                   -- number of data (non sorting) bits
+    g_DAT_SIZE   : integer := 32;                                  -- number of data (non sorting) bits
     g_QLT_SIZE   : integer := 1;                                   -- number of sorting bits
     g_ADR_SIZE_i : integer := 0;                                   -- set to zero for top level instance
     g_ADR_SIZE_o : integer := integer(ceil(log2(real(g_WIDTH))));
@@ -55,32 +61,32 @@ entity priority_encoder is
     clock : in std_logic;
 
     -- inputs
-    dat_i : in bus_array (0 to g_WIDTH-1)(g_DAT_SIZE -1 downto 0);                                  -- "extra" non-sorting data bits for each input
+    dat_i : in bus_array (0 to g_WIDTH-1)(g_DAT_SIZE -1 downto 0) := (others => (others => '0')); -- "extra" non-sorting data bits for each input
     adr_i : in bus_array (0 to g_WIDTH-1)(g_ADR_SIZE_i-1 downto 0) := (others => (others => '0'));  -- address bits, set to zero for top level
+    dav_i : in std_logic := '0';
 
     -- outputs
-    dat_o : out std_logic_vector (g_DAT_SIZE -1 downto 0);
-    adr_o : out std_logic_vector (g_ADR_SIZE_o-1 downto 0)
+    dat_o : out std_logic_vector (g_DAT_SIZE -1 downto 0) := (others => '0');
+    adr_o : out std_logic_vector (g_ADR_SIZE_o-1 downto 0):= (others => '0');
+    dav_o : out std_logic := '0'
     );
 end priority_encoder;
 
 architecture behavioral of priority_encoder is
 
-  function adrcat (adr : std_logic_vector;
-                   base : std_logic_vector;
-                   N : integer)
+  -- FIXME: DOCUMENT ME
+  function adrcat (adr : std_logic_vector; base : std_logic_vector; N : integer)
     return std_logic_vector is
   begin
-    if (N = 0) then
+    if (N <= 0) then
       return adr;
     else
       return adr & base;
     end if;
   end function;
 
-  function adrcat (adr : std_logic;
-                   base : std_logic_vector;
-                   N : integer)
+  -- FIXME: DOCUMENT ME
+  function adrcat (adr : std_logic; base : std_logic_vector; N : integer)
     return std_logic_vector is
   begin
     if (N = 0) then
@@ -90,20 +96,20 @@ architecture behavioral of priority_encoder is
     end if;
   end function;
 
-
+  -- FIXME: DOCUMENT ME
   function quality (slv : std_logic_vector) return std_logic_vector is
     variable result : std_logic_vector(g_QLT_SIZE-1 downto 0);
   begin
     return slv(g_QLT_SIZE-1 downto 0);
   end;
 
+  -- FIXME: DOCUMENT ME
   procedure best_1of2 (
     signal best_adr, best_dat : out std_logic_vector;
     adr0, adr1, dat0, dat1    : in  std_logic_vector
     ) is
   begin
     if (quality(dat1) > quality(dat0)) then
-
       best_adr <= adrcat ('1', adr1, g_ADR_SIZE_i);
       best_dat <= dat1;
     else
@@ -112,6 +118,7 @@ architecture behavioral of priority_encoder is
     end if;
   end best_1of2;
 
+  -- FIXME: DOCUMENT ME
   function next_width (width : integer)
     return integer is
   begin
@@ -129,6 +136,7 @@ architecture behavioral of priority_encoder is
     end if;
   end function;
 
+  -- FIXME: DOCUMENT ME
   function extra_adrb (width : integer)
     return integer is
   begin
@@ -144,6 +152,15 @@ architecture behavioral of priority_encoder is
     end if;
   end function;
 
+  -- FIXME: DOCUMENT ME
+  function stage_is_registered (stage : integer; reg_stages : integer; reg_input : boolean)
+    return boolean is
+  begin
+      return ((stage = 0 and reg_input) or (stage /= 0 and (stage mod reg_stages = 0)));
+  end function;
+
+  signal dav : std_logic := '0';
+
 begin
 
   assert not VERBOSE report "Generating priority encoder stage " & integer'image(g_STAGE) severity note;
@@ -155,60 +172,71 @@ begin
   -- feed this recursively into another encoder which will have 1 additional addrb
   comp_gen : if (g_WIDTH > 3) generate
     constant comp_out_width : integer := next_width(g_WIDTH);
-    signal dat              : bus_array (0 to comp_out_width-1)(g_DAT_SIZE-1 downto 0);
-    signal adr              : bus_array (0 to comp_out_width-1)(g_ADR_SIZE_i downto 0);  -- add 1 bit
+    signal dat              : bus_array (0 to comp_out_width-1)(g_DAT_SIZE-1 downto 0) := (others => (others => '0'));
+    signal adr              : bus_array (0 to comp_out_width-1)(g_ADR_SIZE_i downto 0) := (others => (others => '0'));  -- add 1 bit
   begin
 
     assert not VERBOSE report " > Generating comparators for #inputs=" & integer'image(g_WIDTH) severity note;
 
-    nzgen : if (g_ADR_SIZE_i > 0) generate
-    assert not VERBOSE report " > adr_next (" & integer'image(g_ADR_SIZE_i) &
-      " downto 0) <= 'x' & adr_i (" & integer'image(g_ADR_SIZE_i -1 ) & " downto 0)" severity note;
-    end generate;
+    -- nzgen : if (g_ADR_SIZE_i > 0) generate
+    -- assert not VERBOSE report " > adr_next (" & integer'image(g_ADR_SIZE_i) &
+    --   " downto 0) <= 'x' & adr_i (" & integer'image(g_ADR_SIZE_i -1 ) & " downto 0)" severity note;
+    -- end generate;
 
-    zgen : if (g_ADR_SIZE_i = 0) generate
-    assert not VERBOSE report " > adr_next (" & integer'image(g_ADR_SIZE_i) &
-      " downto 0) <= 'x'" severity note;
-    end generate;
+    -- zgen : if (g_ADR_SIZE_i = 0) generate
+    -- assert not VERBOSE report " > adr_next (" & integer'image(g_ADR_SIZE_i) &
+    --   " downto 0) <= 'x'" severity note;
+    -- end generate;
+
+    process (clock,dav_i) is
+    begin
+      if (rising_edge(clock) or not (stage_is_registered(g_STAGE, g_REG_STAGES, g_REG_INPUT))) then
+        dav <= dav_i;
+      end if;
+    end process;
 
     comp_loop : for icomp in 0 to comp_out_width-1 generate
     begin
 
-
       -- even cases are simple
       gen_even : if (icomp < comp_out_width -1 or (g_WIDTH mod 2 = 0)) generate
+
         assert not VERBOSE report "   > icomp: #" & integer'image(icomp+1) &
           " of " & integer'image(comp_out_width) &
           " compare: " & integer'image(icomp*2+1) &
           " to " & integer'image(icomp*2) severity note;
+
         process (clock, adr_i, dat_i) is
         begin
-          if (rising_edge(clock) or not (
-            (g_STAGE = 0 and g_REG_INPUT) or
-            (g_STAGE /= 0 and (g_STAGE mod g_REG_STAGES = 0)))) then
+          if (rising_edge(clock) or not (stage_is_registered(g_STAGE, g_REG_STAGES, g_REG_INPUT))) then
             best_1of2 (adr(icomp), dat(icomp),
                        adr_i(icomp*2), adr_i(icomp*2+1),
                        dat_i(icomp*2), dat_i(icomp*2+1));
           end if;
         end process;
+
       end generate;
 
       -- if we have an odd number of inputs, just choose highest # real entry (no comparator)
       gen_odd : if (g_WIDTH mod 2 /= 0 and icomp = comp_out_width-1) generate
+
+        assert not VERBOSE report "  > odd nocompare on : " & integer'image(icomp*2) severity note;
+
         process (clock, adr_i, dat_i) is
         begin
-          if (rising_edge(clock) or not (
-            (g_STAGE = 0 and g_REG_INPUT) or
-            (g_STAGE /= 0 and (g_STAGE mod g_REG_STAGES = 0)))) then
-            assert not VERBOSE report "  > odd nocompare on : " & integer'image(icomp*2) severity note;
-
-            dat(icomp) <= dat_i(icomp*2);
-            adr(icomp) <= adrcat ('0', adr_i (icomp*2), g_ADR_SIZE_i);
+          if (rising_edge(clock) or not (stage_is_registered(g_STAGE, g_REG_STAGES, g_REG_INPUT))) then
+            --dat(icomp) <= dat_i(icomp*2);
+            --adr(icomp) <= adrcat ('0', adr_i (icomp*2), g_ADR_SIZE_i);
+            best_1of2 (adr(icomp), dat(icomp),
+                       adr_i(icomp*2), adr_i(icomp*2),
+                       dat_i(icomp*2), dat_i(icomp*2));
           end if;
         end process;
-      end generate;
 
+      end generate;
     end generate;
+
+    -- recursively generate this module to continue down the chain...
 
     priority_encoder_inst : entity work.priority_encoder
       generic map (
@@ -222,8 +250,10 @@ begin
         )
       port map (
         clock => clock,
+        dav_i => dav,
         dat_i => dat,
         adr_i => adr,
+        dav_o => dav_o,
         dat_o => dat_o,
         adr_o => adr_o
         );
@@ -236,16 +266,24 @@ begin
 
   -- for a single final case, just output it
   g_WIDTH1_gen : if (g_WIDTH = 1) generate
-    adr_o <= adr_i(0);
-    dat_o <= dat_i(0);
+  begin
+    process (clock,dav_i,adr_i,dat_i) is
+    begin
+      if (rising_edge(clock) or (not g_REG_OUTPUT)) then
+        dav_o <= dav_i;
+        adr_o <= adr_i(0);
+        dat_o <= dat_i(0);
+      end if;
+    end process;
   end generate;
 
   -- for a double final case, choose 1 of 2
   g_WIDTH2_gen : if (g_WIDTH = 2) generate
     assert not VERBOSE report "   > 2:1 mux" severity note;
-    process (clock, adr_i, dat_i) is
+    process (clock, dav_i, adr_i, dat_i) is
     begin
       if (rising_edge(clock) or (not g_REG_OUTPUT)) then
+        dav_o <= dav_i;
         best_1of2 (adr_o, dat_o,
                    adr_i(0), adr_i(1),
                    dat_i(0), dat_i(1));
@@ -257,22 +295,25 @@ begin
   g_WIDTH3_gen : if (g_WIDTH = 3) generate
     assert not VERBOSE report "   > 3:1 mux" severity note;
 
-    nzgen : if (g_ADR_SIZE_i > 0) generate
-    assert not VERBOSE report
-      " > adr_o (" & integer'image(g_ADR_SIZE_o-1) &
-      " downto 0) <= 'xx' & adr_i ("
-      & integer'image(g_ADR_SIZE_i -1 ) & "downto 0)" severity note;
-    end generate;
+    -- nzgen : if (g_ADR_SIZE_i > 0) generate
+    -- assert not VERBOSE report
+    --   " > adr_o (" & integer'image(g_ADR_SIZE_o-1) &
+    --   " downto 0) <= 'xx' & adr_i ("
+    --   & integer'image(g_ADR_SIZE_i -1 ) & "downto 0)" severity note;
+    -- end generate;
 
-    zgen : if (g_ADR_SIZE_i = 0) generate
-    assert not VERBOSE report
-      " > adr_o (" & integer'image(g_ADR_SIZE_o-1) &
-      " downto 0) <= 'xx'" severity note;
-    end generate;
+    -- zgen : if (g_ADR_SIZE_i = 0) generate
+    -- assert not VERBOSE report
+    --   " > adr_o (" & integer'image(g_ADR_SIZE_o-1) &
+    --   " downto 0) <= 'xx'" severity note;
+    -- end generate;
 
-    process (clock, adr_i, dat_i) is
+    process (clock, dav_i, adr_i, dat_i) is
     begin
       if (rising_edge(clock) or (not g_REG_OUTPUT)) then
+
+        dav_o <= dav_i;
+
         -- choose 2
         if (quality(dat_i(2)) > quality(dat_i (1)) and quality(dat_i(2)) > quality(dat_i (0))) then
           adr_o <= adrcat ("10", adr_i (2), g_ADR_SIZE_i);
