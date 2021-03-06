@@ -1,0 +1,55 @@
+#+TITLE: README
+
+* Weighted, pipelined, parameterized priority encoder
+
+Given an array of inputs, it will choose the highest quality input
+
+For multiple inputs with the same quality, it will choose the lowest numbered input
+
+Quality is defined as the largest number for a subset of the input data field.
+ - For example the inputs can be a 32 bit number (set by the ~WIDTH~ parameter),
+  and the quality can be the first ~N downto 0~ bits of the input, where N is set by ~QLT_BITS~
+
+To do unweighted sorting (e.g. based on a valid bit only), just set ~QLT_BITS~ to 1 and make the valid bit the LSB of the data word
+
+Both the data itself as well as the address of the data are output from the module
+
+Inputs can be registered by setting ~REG_INPUT => true~
+
+Outputs can be registered by setting ~REG_OUTPUT => true~
+
+Pipeline registers can be inserted throughout the priority encoder tree with by setting ~REG_STAGES~
+ - Setting ~REG_STAGES=0~ will not insert any pipeline registers
+ - Setting ~REG_STAGES=N~ will insert pipeline registers on every Nth stage of the sorting tree
+
+For example, on a tree with depth 8 (e.g. 256 bit wide encoder with 256 --> 128 --> 64 --> 32 --> 16 --> 8 --> 4 --> 2 --> 1)
+and ~REG_INPUT=1~ , ~REG_OUTPUT=1~, ~REG_STAGES=3~:
+  - You would have a flip-flop at stage 0
+  - You would have a flip-flop at stage 3
+  - You would have a flip-flop at stage 6
+  - You would have a flip-flop at stage 7
+
+Enabling re-timing is recommended to best balance the flip-flops across stages.
+
+** VHDL Instantiation Template
+#+begin_src vhdl
+  priority_encoder_inst : entity work.priority_encoder
+    generic map (
+      WIDTH      => WIDTH,
+      REG_INPUT  => REG_INPUT,
+      REG_OUTPUT => REG_OUTPUT,
+      REG_STAGES => REG_STAGES,
+      DAT_BITS   => DAT_BITS,
+      QLT_BITS   => QLT_BITS,
+      ADR_BITS_o => integer(ceil(log2(real(WIDTH)))),
+      STAGE      => STAGE
+      )
+    port map (
+      clock => clock,
+      dav_i => dav_i,
+      dav_o => dav_o,
+      dat_i => dat_i,
+      dat_o => dat_o,
+      adr_o => adr_o
+      );
+#+end_src

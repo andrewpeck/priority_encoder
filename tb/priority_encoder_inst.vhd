@@ -19,7 +19,6 @@ entity priority_encoder_inst is
 
     DAT_BITS   : integer := 32;         -- number of data (non sorting) bits
     QLT_BITS   : integer := 32;         -- number of sorting bits
-    ADR_BITS_i : integer := 0;          -- set to zero for top level instance
     ADR_BITS_o : integer := integer(ceil(log2(real(WIDTH))));
     STAGE      : integer := 0           -- set to zero for top level instance
 
@@ -51,7 +50,6 @@ begin
       REG_STAGES => REG_STAGES,
       DAT_BITS   => DAT_BITS,
       QLT_BITS   => QLT_BITS,
-      ADR_BITS_i => ADR_BITS_i,
       ADR_BITS_o => ADR_BITS_o,
       STAGE      => STAGE)
     port map (
