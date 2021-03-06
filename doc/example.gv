@@ -1,0 +1,24 @@
+digraph {
+
+  {rank = same; a0 -> a1 -> a2 -> a3 -> a4 ->  a5 [ style = invis ]}
+
+  a0 -> b0
+  a1 -> b0
+  a2 -> b1
+  a3 -> b1
+  a4 -> b2
+  a5 -> b2
+  a6 -> b3
+  a7 -> b3
+  a8 -> b4
+
+  b0 -> c0
+  b1 -> c0
+  b2 -> c1
+  b3 -> c1
+  b4 -> c2
+
+  c0 -> d1
+  c1 -> d1
+  c2 -> d1
+}
