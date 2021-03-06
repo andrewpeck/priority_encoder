@@ -1,5 +1,5 @@
 #+TITLE: Weighted, pipelined, parameterized, parallelized priority encoder
-*
+
 Given an array of inputs, it will choose the highest quality input
 
 For multiple inputs with the same quality, it will choose the lowest numbered input
