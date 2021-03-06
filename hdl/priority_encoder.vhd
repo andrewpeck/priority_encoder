@@ -119,33 +119,33 @@ architecture behavioral of priority_encoder is
   end best_1of2;
 
   -- FIXME: DOCUMENT ME
-  function next_width (width : integer)
+  function next_width (current_width : integer)
     return integer is
   begin
     -- for size=4 we reduce to 2 and add 1 bit
     -- for size=3 we reduce to 1 and add 2 bits
     -- for size=2 we reduce to 1 and add 1 bit
-    if (width = 1) then
+    if (current_width = 1) then
       return 1;
-    elsif (width = 3) then
+    elsif (current_width = 3) then
       return 1;
-    elsif (width mod 2 = 0) then
-      return width / 2;
+    elsif (current_width mod 2 = 0) then
+      return current_width / 2;
     else
-      return (width+1)/ 2;
+      return (current_width+1)/ 2;
     end if;
   end function;
 
   -- FIXME: DOCUMENT ME
-  function extra_adrb (width : integer)
+  function extra_adrb (current_width : integer)
     return integer is
   begin
     -- for size=4 we reduce to 2 and add 1 bit
     -- for size=3 we reduce to 1 and add 2 bits
     -- for size=2 we reduce to 1 and add 1 bit
-    if (width = 1) then
+    if (current_width = 1) then
       return 0;
-    elsif (width = 3) then
+    elsif (current_width = 3) then
       return 2;
     else
       return 1;
@@ -153,10 +153,10 @@ architecture behavioral of priority_encoder is
   end function;
 
   -- FIXME: DOCUMENT ME
-  function stage_is_registered (stage : integer; reg_stages : integer; reg_input : boolean)
+  function stage_is_registered (stg : integer; reg_stgs : integer; reg_inp : boolean)
     return boolean is
   begin
-    return ((stage = 0 and reg_input) or (stage /= 0 and (stage mod reg_stages = 0)));
+    return ((stg = 0 and reg_inp) or (stg /= 0 and (stg mod reg_stgs = 0)));
   end function;
 
   signal dav : std_logic := '0';
