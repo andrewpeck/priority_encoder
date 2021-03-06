@@ -2,7 +2,7 @@ import math
 import os
 import pytest
 
-from cocotb_test.simulator  import run
+from cocotb_test.simulator import run
 
 import cocotb
 from cocotb.triggers import Timer
@@ -13,30 +13,33 @@ from cocotb.triggers import Event
 import random
 
 # from https://github.com/cocotb/cocotb/blob/master/tests/test_cases/test_discovery/test_discovery.py
-#@cocotb.test()
-#async def recursive_discover(dut):
-#    """Discover absolutely everything in the DUT"""
-#    def _discover(obj):
-#        for thing in obj:
-#            dut._log.info("Found %s (%s)", thing._name, type(thing))
-#            _discover(thing)
-#    _discover(dut)
+# @cocotb.test()
+# async def recursive_discover(dut):
+#     """Discover absolutely everything in the DUT"""
+#     def _discover(obj):
+#         for thing in obj:
+#             dut._log.info("Found %s (%s)", thing._name, type(thing))
+#             _discover(thing)
+#     _discover(dut)
 
-# good example:
-# https://github.com/alexforencich/verilog-ethernet/blob/master/tb/ptp_clock_cdc/test_ptp_clock_cdc.py
+#  good example:
+#  https://github.com/alexforencich/verilog-ethernet/blob/master/tb/ptp_clock_cdc/test_ptp_clock_cdc.py
 
-def num_pipeline_ffs(depth,increment):
+
+def num_pipeline_ffs(depth, increment):
     n = 0
-    for i in range (1,depth):
+    for i in range(1, depth):
         if (i % increment == 0):
             n = n + 1
     return n
 
+
 def tree_depth(width, tail=0):
-    if (width in [0,1,2,3]):
+    if (width in [0, 1, 2, 3]):
         return 1+tail
     else:
-        return (tree_depth(math.ceil(width/2),tail+1))
+        return (tree_depth(math.ceil(width/2), tail+1))
+
 
 def get_latency(dut):
     width = dut.WIDTH.value
@@ -50,6 +53,7 @@ def get_latency(dut):
     latency = reg_input + reg_output + num_ffs
     return latency
 
+
 @cocotb.test()
 async def priority_encoder_random_data(dut):
     """Test for priority encoder with randomized data on all inputs"""
@@ -59,13 +63,9 @@ async def priority_encoder_random_data(dut):
     width = dut.WIDTH.value
     qltbits = dut.QLT_BITS.value
     qltmask = 2**(qltbits)-1
-    print("quality mask:")
-    print(qltmask)
-    latency = get_latency(dut)
-
 
     for ichn in range(0, width):
-        dut.dat_i[ichn] <= 0;
+        dut.dat_i[ichn] <= 0
 
     for loop in range(10):
         await RisingEdge(dut.clock)  # Synchronize with the clock
@@ -75,15 +75,15 @@ async def priority_encoder_random_data(dut):
         # turn on stimulus for 1 clock
         await RisingEdge(dut.clock)  # Synchronize with the clock
         for ichn in range(0, width):
-            dut.dat_i[ichn] <= random.randint (0,2**width-1)
-        dut.dav_i <= 1;
+            dut.dat_i[ichn] <= random.randint(0, 2**width-1)
+        dut.dav_i <= 1
 
         # turn off after 1 clock
         await RisingEdge(dut.clock)  # Synchronize with the clock
 
-        dut.dav_i <= 0;
+        dut.dav_i <= 0
         for ichn in range(0, width):
-            dut.dat_i[ichn] <= 0;
+            dut.dat_i[ichn] <= 0
 
         # find the best output
         # (priority encoder emulation)
@@ -100,19 +100,20 @@ async def priority_encoder_random_data(dut):
 
         await RisingEdge(dut.clock)  # Synchronize with the clock
         while (dut.dav_o.value == 0):
-           print ("dav=" + hex(int(dut.dav_o.value)))
-           await RisingEdge(dut.clock)  # Synchronize with the clock
+            print("dav=" + hex(int(dut.dav_o.value)))
+            await RisingEdge(dut.clock)  # Synchronize with the clock
 
-        print ("best adr=" + hex(int(best)))
-        print ("best data=" + hex(int(qlt)))
-        print ("found adr=" + hex(int(dut.adr_o.value)))
-        print ("found data=" + hex(int(dut.dat_o.value)))
+        print("best adr=" + hex(int(best)))
+        print("best data=" + hex(int(qlt)))
+        print("found adr=" + hex(int(dut.adr_o.value)))
+        print("found data=" + hex(int(dut.dat_o.value)))
 
-        assert int(dut.adr_o.value) == best;
-        assert int(dut.dat_o.value) == dat;
+        assert int(dut.adr_o.value) == best
+        assert int(dut.dat_o.value) == dat
 
-@pytest.mark.parametrize("qlt_aspect", [1,2])
-@pytest.mark.parametrize("datbits", [1,2,3,32])
+
+@pytest.mark.parametrize("qlt_aspect", [1, 2])
+@pytest.mark.parametrize("datbits", [1, 2, 3, 32])
 @pytest.mark.parametrize("width", [2, 3, 4, 5, 7, 13, 16, 32, 64])
 def test_priority_encoder(width, datbits, qlt_aspect):
 
@@ -139,6 +140,7 @@ def test_priority_encoder(width, datbits, qlt_aspect):
         parameters=parameters,
         gui=0
     )
+
 
 if __name__ == "__main__":
     test_priority_encoder()
