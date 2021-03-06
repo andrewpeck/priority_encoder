@@ -178,16 +178,6 @@ begin
 
     assert not VERBOSE report " > Generating comparators for #inputs=" & integer'image(g_WIDTH) severity note;
 
-    -- nzgen : if (g_ADR_SIZE_i > 0) generate
-    -- assert not VERBOSE report " > adr_next (" & integer'image(g_ADR_SIZE_i) &
-    --   " downto 0) <= 'x' & adr_i (" & integer'image(g_ADR_SIZE_i -1 ) & " downto 0)" severity note;
-    -- end generate;
-
-    -- zgen : if (g_ADR_SIZE_i = 0) generate
-    -- assert not VERBOSE report " > adr_next (" & integer'image(g_ADR_SIZE_i) &
-    --   " downto 0) <= 'x'" severity note;
-    -- end generate;
-
     process (clock,dav_i) is
     begin
       if (rising_edge(clock) or not (stage_is_registered(g_STAGE, g_REG_STAGES, g_REG_INPUT))) then
@@ -294,19 +284,6 @@ begin
   -- for a triple final case, choose 1 of 3
   g_WIDTH3_gen : if (g_WIDTH = 3) generate
     assert not VERBOSE report "   > 3:1 mux" severity note;
-
-    -- nzgen : if (g_ADR_SIZE_i > 0) generate
-    -- assert not VERBOSE report
-    --   " > adr_o (" & integer'image(g_ADR_SIZE_o-1) &
-    --   " downto 0) <= 'xx' & adr_i ("
-    --   & integer'image(g_ADR_SIZE_i -1 ) & "downto 0)" severity note;
-    -- end generate;
-
-    -- zgen : if (g_ADR_SIZE_i = 0) generate
-    -- assert not VERBOSE report
-    --   " > adr_o (" & integer'image(g_ADR_SIZE_o-1) &
-    --   " downto 0) <= 'xx'" severity note;
-    -- end generate;
 
     process (clock, dav_i, adr_i, dat_i) is
     begin
