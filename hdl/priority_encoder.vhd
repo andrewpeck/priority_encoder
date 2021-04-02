@@ -3,7 +3,7 @@
 -------------------------------------------------------------------------------
 -- File       : priority_encoder.vhd
 -- Author     : Andrew Peck  <andrew.peck@cern.ch>
--- Last update: 2021-03-05
+-- Last update: 2021-04-02
 -- Standard   : VHDL'2008
 -------------------------------------------------------------------------------
 -- Description:
@@ -63,12 +63,12 @@ entity priority_encoder is
     -- inputs
     dat_i : in bus_array (0 to WIDTH-1)(DAT_BITS -1 downto 0)  := (others => (others => '0'));  -- "extra" non-sorting data bits for each input
     adr_i : in bus_array (0 to WIDTH-1)(ADR_BITS_i-1 downto 0) := (others => (others => '0'));  -- address bits, set to zero for top level
-    dav_i : in std_logic                                         := '0';
+    dav_i : in std_logic                                       := '0';
 
     -- outputs
     dat_o : out std_logic_vector (DAT_BITS -1 downto 0)  := (others => '0');
     adr_o : out std_logic_vector (ADR_BITS_o-1 downto 0) := (others => '0');
-    dav_o : out std_logic                                  := '0'
+    dav_o : out std_logic                                := '0'
     );
 end priority_encoder;
 
@@ -156,7 +156,15 @@ architecture behavioral of priority_encoder is
   function stage_is_registered (stg : integer; reg_stgs : integer; reg_inp : boolean)
     return boolean is
   begin
-    return ((stg = 0 and reg_inp) or (stg /= 0 and (stg mod reg_stgs = 0)));
+    if (reg_stgs = 0) then
+      return false;
+    elsif (stg = 0 and reg_inp) then
+      return true;
+    elsif (stg /= 0 and (stg mod reg_stgs = 0)) then
+      return true;
+    else
+      return false;
+    end if;
   end function;
 
   signal dav : std_logic := '0';
@@ -171,7 +179,7 @@ begin
   -- do a 2:1 reduction of all of the inputs to form a 1/2 width comparison array
   -- feed this recursively into another encoder which will have 1 additional addrb
   comp_gen : if (WIDTH > 3) generate
-    constant comp_out_width : integer                                                  := next_width(WIDTH);
+    constant comp_out_width : integer                                                := next_width(WIDTH);
     signal dat              : bus_array (0 to comp_out_width-1)(DAT_BITS-1 downto 0) := (others => (others => '0'));
     signal adr              : bus_array (0 to comp_out_width-1)(ADR_BITS_i downto 0) := (others => (others => '0'));  -- add 1 bit
   begin

@@ -1,4 +1,4 @@
-#+TITLE: Weighted, pipelined, parameterized, parallelized priority encoder
+#+TITLE: Weighted, pipelined, parameterized, parallelized priority encoding multiplexer
 
 (VHDL-2008 only)
 
@@ -49,8 +49,7 @@ and ~REG_INPUT=1~ , ~REG_OUTPUT=1~, ~REG_STAGES=3~:
       REG_STAGES => REG_STAGES,
       DAT_BITS   => DAT_BITS,
       QLT_BITS   => QLT_BITS,
-      ADR_BITS_o => integer(ceil(log2(real(WIDTH)))),
-      STAGE      => STAGE
+      ADR_BITS_o => integer(ceil(log2(real(WIDTH))))
       )
     port map (
       clock => clock,
@@ -84,3 +83,4 @@ and ~REG_INPUT=1~ , ~REG_OUTPUT=1~, ~REG_STAGES=3~:
 | dav_i | Data valid input; not used internally but latency of ~dav_i~ to ~dav_o~ will be equal to the latency through the encoder |
 | dav_o | Data valid output; pipelined copy of ~dav_i~                                                                           |
 |-------+----------------------------------------------------------------------------------------------------------------------|
+** Testing
