@@ -41,7 +41,7 @@ end priority_encoder_inst;
 architecture behavioral of priority_encoder_inst is
 begin
 
-  priority_encoder_inst : entity work.priority_encoder
+  priority_encoder_inst2 : entity work.priority_encoder
     generic map (
       VERBOSE    => VERBOSE,
       WIDTH      => WIDTH,
