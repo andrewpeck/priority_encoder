@@ -24,7 +24,7 @@ Priority encoding happens in parallel, so the latency of the encoder scales as l
 
 An illustrative example:
 
-[[file:doc/example.gv.svg]]
+[[file:doc/output.gv.svg]]
 
 Pipeline registers can be inserted throughout the priority encoder tree with by setting ~REG_STAGES~
  - Setting ~REG_STAGES=0~ will not insert any pipeline registers

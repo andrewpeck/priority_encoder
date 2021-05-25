@@ -1,5 +1,10 @@
+all: gv svg png
+
+gv:
+	bash generate_gv.el
+
 svg:
-	dot -Tsvg -O example.gv
+	dot -Tsvg -O output.gv
 
 png:
-	dot -Tpng -O example.gv
+	dot -Tpng -O output.gv

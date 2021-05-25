@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 :; ( echo "$EMACS" | grep -q "term" ) && EMACS=emacs || EMACS=${EMACS:-emacs} # -*-emacs-lisp-*-
 :; command -v $EMACS >/dev/null || { >&2 echo "Can't find emacs in your PATH"; exit 1; }
-:; exec emacs -l ~/.emacs.d/init.el --script "$0" -- "$@"
+:; exec emacs -Q --script "$0" -- "$@"
 :; exit 0
 ;; -*- lexical-binding: t -*-
 ;;; Code:
@@ -44,6 +44,6 @@
       (sort-tree (ceiling (/ width 2.0)) (+ stage 1) text)))
   )
 
-;;(princ (sort-tree 8 0 ""))
+;; change the first arg here to generate different widths
 (shell-command-to-string (format "echo '%s' > output.gv" (sort-tree 9 0 "")))
 (shell-command-to-string (format "dot -Tpng -O output.gv"))
