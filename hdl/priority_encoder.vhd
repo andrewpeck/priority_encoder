@@ -3,7 +3,7 @@
 -------------------------------------------------------------------------------
 -- File       : priority_encoder.vhd
 -- Author     : Andrew Peck  <andrew.peck@cern.ch>
--- Last update: 2021-04-02
+-- Last update: 2021-04-14
 -- Standard   : VHDL'2008
 -------------------------------------------------------------------------------
 -- Description:
@@ -37,7 +37,6 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.math_real.all;
 
-library work;
 use work.priority_encoder_pkg.all;
 
 entity priority_encoder is
@@ -98,7 +97,6 @@ architecture behavioral of priority_encoder is
 
   -- FIXME: DOCUMENT ME
   function quality (slv : std_logic_vector) return std_logic_vector is
-    variable result : std_logic_vector(QLT_BITS-1 downto 0);
   begin
     return slv(QLT_BITS-1 downto 0);
   end;
@@ -133,22 +131,6 @@ architecture behavioral of priority_encoder is
       return current_width / 2;
     else
       return (current_width+1)/ 2;
-    end if;
-  end function;
-
-  -- FIXME: DOCUMENT ME
-  function extra_adrb (current_width : integer)
-    return integer is
-  begin
-    -- for size=4 we reduce to 2 and add 1 bit
-    -- for size=3 we reduce to 1 and add 2 bits
-    -- for size=2 we reduce to 1 and add 1 bit
-    if (current_width = 1) then
-      return 0;
-    elsif (current_width = 3) then
-      return 2;
-    else
-      return 1;
     end if;
   end function;
 
@@ -236,7 +218,7 @@ begin
 
     -- recursively generate this module to continue down the chain...
 
-    priority_encoder_inst : entity work.priority_encoder
+    priority_encoder_inst : entity priority_encoder
       generic map (
         STAGE      => STAGE + 1,
         REG_STAGES => REG_STAGES,
