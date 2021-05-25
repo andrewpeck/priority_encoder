@@ -61,6 +61,7 @@ async def priority_encoder_random_data(dut):
     cocotb.fork(Clock(dut.clock, 20, units="ns").start())  # Create a clock
 
     width = dut.WIDTH.value
+    datbits = dut.DAT_BITS.value
     qltbits = dut.QLT_BITS.value
     qltmask = 2**(qltbits)-1
 
@@ -75,7 +76,7 @@ async def priority_encoder_random_data(dut):
         # turn on stimulus for 1 clock
         await RisingEdge(dut.clock)  # Synchronize with the clock
         for ichn in range(0, width):
-            dut.dat_i[ichn] <= random.randint(0, 2**width-1)
+            dut.dat_i[ichn] <= random.randint(0, 2**datbits-1)
         dut.dav_i <= 1
 
         # turn off after 1 clock
@@ -112,9 +113,9 @@ async def priority_encoder_random_data(dut):
         assert int(dut.dat_o.value) == dat
 
 
-@pytest.mark.parametrize("qlt_aspect", [1, 2])
+@pytest.mark.parametrize("qlt_aspect", [1, 2, 4])
 @pytest.mark.parametrize("datbits", [1, 2, 3, 32])
-@pytest.mark.parametrize("width", [2, 3, 4, 5, 7, 13, 16, 32, 64])
+@pytest.mark.parametrize("width", [2, 3, 4, 5, 7, 13, 16, 32, 64, 128])
 def test_priority_encoder(width, datbits, qlt_aspect):
 
     tests_dir = os.path.abspath(os.path.dirname(__file__))
