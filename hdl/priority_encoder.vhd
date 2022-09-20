@@ -3,7 +3,7 @@
 -------------------------------------------------------------------------------
 -- File       : priority_encoder.vhd
 -- Author     : Andrew Peck  <andrew.peck@cern.ch>
--- Last update: 2021-05-25
+-- Last update: 2022-09-20
 -- Standard   : VHDL'2008
 -------------------------------------------------------------------------------
 -- Description:
@@ -47,8 +47,9 @@ entity priority_encoder is
 
     REG_INPUT  : boolean := false;      -- add ffs to input stage
     REG_OUTPUT : boolean := true;       -- add ffs to output stage
-    REG_STAGES : integer := 2;          -- add ffs to every nth pipeline stage
-
+    REG_STAGES : integer := 2;          -- add ffs to every nth pipeline stage;
+                                        -- 0 = no registers, 1 = every stage,
+                                        -- 2 = every other stage, etc
     DAT_BITS   : integer := 32;         -- number of total (sorting + non sorting) bits
     QLT_BITS   : integer := 1;          -- number of sorting bits
     ADR_BITS_i : integer := 0;          -- set to zero for top level instance
