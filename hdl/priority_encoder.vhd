@@ -3,7 +3,7 @@
 -------------------------------------------------------------------------------
 -- File       : priority_encoder.vhd
 -- Author     : Andrew Peck  <andrew.peck@cern.ch>
--- Last update: 2022-09-20
+-- Last update: 2023-03-19
 -- Standard   : VHDL'2008
 -------------------------------------------------------------------------------
 -- Description:
@@ -17,8 +17,11 @@
 --   N bits of the data field.
 --
 --   To do unweighted sorting (e.g. based on a valid bit),
---   just set QLT_BITS to 1 and make the
---   valid bit the LSB of the data word
+--   just set QLT_BITS to 1 and make the valid bit the LSB of the data word
+--
+--   QLT_BITS and IGNORE_BITs can be used together to sort on any contiguous
+--   subset of bits in the data, since the "quality" which is used as the
+--   sorting parameter is extracted from bits [QLT_BITS-1:IGNORE_BITS]
 --
 --   Both the data itself as well as the address of the data are output
 --   from the module
@@ -50,11 +53,12 @@ entity priority_encoder is
     REG_STAGES : integer := 2;          -- add ffs to every nth pipeline stage;
                                         -- 0 = no registers, 1 = every stage,
                                         -- 2 = every other stage, etc
-    DAT_BITS   : integer := 32;         -- number of total (sorting + non sorting) bits
-    QLT_BITS   : integer := 1;          -- number of sorting bits
-    ADR_BITS_i : integer := 0;          -- set to zero for top level instance
-    ADR_BITS_o : integer := integer(ceil(log2(real(WIDTH))));
-    STAGE      : integer := 0           -- set to zero for top level instance
+    DAT_BITS    : integer := 32;         -- number of total (sorting + non sorting) bits
+    QLT_BITS    : integer := 1;          -- number of sorting bits
+    IGNORE_BITS : integer := 0;          -- number of least significant sorting bits to ignore
+    ADR_BITS_i  : integer := 0;          -- set to zero for top level instance
+    ADR_BITS_o  : integer := integer(ceil(log2(real(WIDTH))));
+    STAGE       : integer := 0           -- set to zero for top level instance
 
     );
   port(
@@ -74,7 +78,14 @@ end priority_encoder;
 
 architecture behavioral of priority_encoder is
 
-  -- FIXME: DOCUMENT ME
+  -- Overloaded functions that concatenate a single bit or a vector of bits onto
+  -- a std_logic_vector.. useful for building up a slv by one or a few bits at a
+  -- time. Handles the degenerate case of concatenating a std_logic onto nothing
+  -- and returning a std_logic_vector
+  --
+  -- e.g. adrcat(1,  X,   0) -> "1"
+  -- e.g. adrcat(1, "1",  X) -> "11"
+  -- e.g. adrcat(1, "11", X) -> "111"
   function adrcat (adr : std_logic_vector; base : std_logic_vector; N : integer)
     return std_logic_vector is
   begin
@@ -84,8 +95,6 @@ architecture behavioral of priority_encoder is
       return adr & base;
     end if;
   end function;
-
-  -- FIXME: DOCUMENT ME
   function adrcat (adr : std_logic; base : std_logic_vector; N : integer)
     return std_logic_vector is
   begin
@@ -96,17 +105,16 @@ architecture behavioral of priority_encoder is
     end if;
   end function;
 
-  -- FIXME: DOCUMENT ME
+  -- Function to extract the sortable quality bits out of the data field
   function quality (slv : std_logic_vector) return std_logic_vector is
   begin
-    return slv(QLT_BITS-1 downto 0);
+    return slv(QLT_BITS-1 downto IGNORE_BITS);
   end;
 
-  -- FIXME: DOCUMENT ME
+  -- inputs: adr0/dat0, adr1/dat1
   procedure best_1of2 (
     signal best_adr, best_dat : out std_logic_vector;
-    adr0, adr1, dat0, dat1    : in  std_logic_vector
-    ) is
+    adr0, adr1, dat0, dat1    : in  std_logic_vector) is
   begin
     if (quality(dat1) > quality(dat0)) then
       best_adr <= adrcat ('1', adr1, ADR_BITS_i);
@@ -117,7 +125,8 @@ architecture behavioral of priority_encoder is
     end if;
   end best_1of2;
 
-  -- FIXME: DOCUMENT ME
+  -- Get the width of the next encoding stage.. either 1/2/3 for the terminal
+  -- cases or N/2 for the non-terminal case
   function next_width (current_width : integer)
     return integer is
   begin
@@ -135,7 +144,7 @@ architecture behavioral of priority_encoder is
     end if;
   end function;
 
-  -- FIXME: DOCUMENT ME
+  -- Given a stage in the pipeline, decide if there should be a FF register or not
   function stage_is_registered (stg : integer; reg_stgs : integer; reg_inp : boolean)
     return boolean is
   begin
@@ -221,13 +230,14 @@ begin
 
     priority_encoder_inst : entity priority_encoder
       generic map (
-        STAGE      => STAGE + 1,
-        REG_STAGES => REG_STAGES,
-        WIDTH      => comp_out_width,
-        DAT_BITS   => DAT_BITS,
-        QLT_BITS   => QLT_BITS,
-        ADR_BITS_i => ADR_BITS_i+1,
-        ADR_BITS_o => ADR_BITS_o
+        STAGE       => STAGE + 1,
+        REG_STAGES  => REG_STAGES,
+        WIDTH       => comp_out_width,
+        DAT_BITS    => DAT_BITS,
+        QLT_BITS    => QLT_BITS,
+        IGNORE_BITS => IGNORE_BITS,
+        ADR_BITS_i  => ADR_BITS_i+1,
+        ADR_BITS_o  => ADR_BITS_o
         )
       port map (
         clock => clock,
