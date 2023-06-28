@@ -9,7 +9,7 @@ from cocotb.triggers import RisingEdge
 from cocotb_test.simulator import run
 
 
-def num_pipeline_ffs(depth, increment):
+def num_pipeline_ffs(depth : int, increment : int) -> int:
 
     """Returns the number of pipeline flop-flops for a priority encoder with a
     given DEPTH and INCREMENT setting"""
@@ -21,7 +21,7 @@ def num_pipeline_ffs(depth, increment):
     return n
 
 
-def tree_depth(width, tail=0):
+def tree_depth(width : int, tail : int = 0) -> int:
 
     """Returns the depth of the encoder tree for a given WIDTH. This is a
     recursive function that uses the TAIL parameter to track the recursion
@@ -33,7 +33,7 @@ def tree_depth(width, tail=0):
         return (tree_depth(math.ceil(width/2), tail+1))
 
 
-def get_latency(dut):
+def get_latency(dut) -> int:
 
     """Returns the total latency of the DUT."""
 
@@ -50,7 +50,7 @@ def get_latency(dut):
 
 
 @cocotb.test() # type: ignore
-async def priority_encoder_random_data(dut):
+async def priority_encoder_random_data(dut) -> None:
 
     """Test for priority encoder with randomized data on all inputs"""
 
@@ -112,7 +112,7 @@ async def priority_encoder_random_data(dut):
 @pytest.mark.parametrize("qlt_aspect", [1, 2, 4])
 @pytest.mark.parametrize("datbits", [1, 2, 3, 32])
 @pytest.mark.parametrize("width", [2, 3, 4, 5, 7, 13, 16, 32, 64, 128])
-def test_priority_encoder(width, datbits, qlt_aspect):
+def test_priority_encoder(width : int, datbits : int, qlt_aspect : int):
 
     tests_dir = os.path.abspath(os.path.dirname(__file__))
     rtl_dir = os.path.abspath(os.path.join(tests_dir, '..', 'hdl'))
