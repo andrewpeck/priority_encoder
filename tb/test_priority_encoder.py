@@ -58,7 +58,7 @@ def get_latency(dut):
 async def priority_encoder_random_data(dut):
     """Test for priority encoder with randomized data on all inputs"""
 
-    cocotb.fork(Clock(dut.clock, 20, units="ns").start())  # Create a clock
+    cocotb.start_soon(Clock(dut.clock, 20, units="ns").start())  # Create a clock
 
     width = dut.WIDTH.value
     datbits = dut.DAT_BITS.value
