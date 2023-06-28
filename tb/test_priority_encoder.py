@@ -1,32 +1,19 @@
 import math
 import os
-import pytest
-
-from cocotb_test.simulator import run
-
-import cocotb
-from cocotb.triggers import Timer
-from cocotb.clock import Clock
-from cocotb.triggers import FallingEdge
-from cocotb.triggers import RisingEdge
-from cocotb.triggers import Event
 import random
 
-# from https://github.com/cocotb/cocotb/blob/master/tests/test_cases/test_discovery/test_discovery.py
-# @cocotb.test()
-# async def recursive_discover(dut):
-#     """Discover absolutely everything in the DUT"""
-#     def _discover(obj):
-#         for thing in obj:
-#             dut._log.info("Found %s (%s)", thing._name, type(thing))
-#             _discover(thing)
-#     _discover(dut)
-
-#  good example:
-#  https://github.com/alexforencich/verilog-ethernet/blob/master/tb/ptp_clock_cdc/test_ptp_clock_cdc.py
+import cocotb
+import pytest
+from cocotb.clock import Clock
+from cocotb.triggers import RisingEdge
+from cocotb_test.simulator import run
 
 
 def num_pipeline_ffs(depth, increment):
+
+    """Returns the number of pipeline flop-flops for a priority encoder with a
+    given DEPTH and INCREMENT setting"""
+
     n = 0
     for i in range(1, depth):
         if (i % increment == 0):
@@ -35,6 +22,11 @@ def num_pipeline_ffs(depth, increment):
 
 
 def tree_depth(width, tail=0):
+
+    """Returns the depth of the encoder tree for a given WIDTH. This is a
+    recursive function that uses the TAIL parameter to track the recursion
+    depth."""
+
     if (width in [0, 1, 2, 3]):
         return 1+tail
     else:
@@ -42,6 +34,9 @@ def tree_depth(width, tail=0):
 
 
 def get_latency(dut):
+
+    """Returns the total latency of the DUT."""
+
     width = dut.WIDTH.value
     reg_input = dut.REG_INPUT.value
     reg_output = dut.REG_OUTPUT.value
@@ -54,8 +49,9 @@ def get_latency(dut):
     return latency
 
 
-@cocotb.test()
+@cocotb.test() # type: ignore
 async def priority_encoder_random_data(dut):
+
     """Test for priority encoder with randomized data on all inputs"""
 
     cocotb.start_soon(Clock(dut.clock, 20, units="ns").start())  # Create a clock
@@ -68,10 +64,10 @@ async def priority_encoder_random_data(dut):
     for ichn in range(0, width):
         dut.dat_i[ichn] <= 0
 
-    for loop in range(10):
+    for _ in range(10):
         await RisingEdge(dut.clock)  # Synchronize with the clock
 
-    for loop in range(100):
+    for _ in range(100):
 
         # turn on stimulus for 1 clock
         await RisingEdge(dut.clock)  # Synchronize with the clock
@@ -122,26 +118,21 @@ def test_priority_encoder(width, datbits, qlt_aspect):
     rtl_dir = os.path.abspath(os.path.join(tests_dir, '..', 'hdl'))
     module = os.path.splitext(os.path.basename(__file__))[0]
 
-    vhdl_sources = [
-        os.path.join(rtl_dir, f"priority_encoder.vhd"),
-        os.path.join(rtl_dir, f"../tb/priority_encoder_inst.vhd")
-    ]
+    vhdl_sources = [os.path.join(rtl_dir, f"priority_encoder.vhd"),
+                    os.path.join(rtl_dir, f"../tb/priority_encoder_inst.vhd")]
 
     parameters = {}
     parameters['WIDTH'] = width
     parameters['DAT_BITS'] = datbits
     parameters['QLT_BITS'] = int(datbits/qlt_aspect)
 
-    run(
-        vhdl_sources=vhdl_sources,
+    run(vhdl_sources=vhdl_sources,
         module=module,       # name of cocotb test module
         compile_args=["-2008"],
         toplevel="priority_encoder_inst",            # top level HDL
         toplevel_lang="vhdl",
         parameters=parameters,
-        gui=0
-    )
-
+        gui=0)
 
 if __name__ == "__main__":
-    test_priority_encoder()
+    test_priority_encoder(1, 32, 128)
